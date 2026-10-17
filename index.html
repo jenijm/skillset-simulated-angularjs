@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" ng-app="inventoryApp">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="An AngularJS inventory manager" />
+    <title>Inventory Manager</title>
+  </head>
+  <body ng-controller="InventoryController as inventory" ng-cloak>
+    <main class="app-shell">
+      <header class="page-header">
+        <div>
+          <span class="eyebrow">STOCK CONTROL</span>
+          <h1>Inventory Manager</h1>
+          <p>Track products, quantities, and inventory value in one place.</p>
+        </div>
+        <div class="header-icon" aria-hidden="true">▦</div>
+      </header>
+
+      <section class="summary-grid" aria-label="Inventory summary">
+        <article class="summary-card primary">
+          <span>Total products</span>
+          <strong>{{ inventory.items.length }}</strong>
+          <small>Unique inventory items</small>
+        </article>
+        <article class="summary-card">
+          <span>Total units</span>
+          <strong>{{ inventory.totalUnits() }}</strong>
+          <small>Units currently in stock</small>
+        </article>
+        <article class="summary-card">
+          <span>Inventory value</span>
+          <strong>{{ inventory.totalValue() | currency }}</strong>
+          <small>Combined stock value</small>
+        </article>
+        <article class="summary-card warning">
+          <span>Low stock</span>
+          <strong>{{ inventory.lowStockCount() }}</strong>
+          <small>Items with 5 units or fewer</small>
+        </article>
+      </section>
+
+      <div class="content-grid">
+        <section class="panel form-panel" aria-labelledby="item-form-heading">
+          <div class="panel-heading">
+            <div class="plus" aria-hidden="true">{{ inventory.editingId ? '✎' : '+' }}</div>
+            <div>
+              <h2 id="item-form-heading">{{ inventory.editingId ? 'Update product' : 'Add product' }}</h2>
+              <p>{{ inventory.editingId ? 'Save changes to this item.' : 'Create a new inventory item.' }}</p>
+            </div>
+          </div>
+
+          <form name="itemForm" ng-submit="inventory.saveItem(itemForm)" novalidate>
+            <label for="name">Product name</label>
+            <input
+              id="name"
+              name="name"
+              ng-model="inventory.form.name"
+              maxlength="80"
+              placeholder="e.g. Wireless Keyboard"
+              required
+            />
+            <p class="field-error" ng-if="inventory.showError(itemForm.name)">Product name is required.</p>
+
+            <label for="category">Category</label>
+            <select id="category" name="category" ng-model="inventory.form.category" required>
+              <option value="">Select a category</option>
+              <option ng-repeat="category in inventory.categories" value="{{ category }}">{{ category }}</option>
+            </select>
+            <p class="field-error" ng-if="inventory.showError(itemForm.category)">Category is required.</p>
+
+            <div class="form-row">
+              <div>
+                <label for="quantity">Quantity</label>
+                <input id="quantity" name="quantity" ng-model="inventory.form.quantity" type="number" min="0" step="1" placeholder="0" required />
+                <p class="field-error" ng-if="inventory.showError(itemForm.quantity)">Use a quantity of 0 or more.</p>
+              </div>
+              <div>
+                <label for="price">Unit price</label>
+                <div class="price-input">
+                  <span>$</span>
+                  <input id="price" name="price" ng-model="inventory.form.price" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+                </div>
+                <p class="field-error" ng-if="inventory.showError(itemForm.price)">Price must be greater than 0.</p>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button ng-if="inventory.editingId" class="secondary-button" type="button" ng-click="inventory.cancelEdit(itemForm)">Cancel</button>
+              <button class="primary-button" type="submit">{{ inventory.editingId ? 'Save changes' : 'Add product' }}</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel inventory-panel" aria-labelledby="inventory-heading">
+          <div class="inventory-heading">
+            <div>
+              <h2 id="inventory-heading">Products</h2>
+              <p>{{ inventory.filteredItems().length }} items shown</p>
+            </div>
+            <div class="filters">
+              <input ng-model="inventory.search" aria-label="Search products" placeholder="Search products" />
+              <select ng-model="inventory.categoryFilter" aria-label="Filter by category">
+                <option value="All">All categories</option>
+                <option ng-repeat="category in inventory.categories" value="{{ category }}">{{ category }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="empty-state" ng-if="inventory.filteredItems().length === 0">
+            <div aria-hidden="true">□</div>
+            <h3>{{ inventory.items.length ? 'No matching products' : 'Your inventory is empty' }}</h3>
+            <p>{{ inventory.items.length ? 'Try changing your search or category.' : 'Add your first product using the form.' }}</p>
+          </div>
+
+          <div class="table-wrap" ng-if="inventory.filteredItems().length > 0">
+            <table>
+              <thead>
+                <tr><th>Product</th><th>Category</th><th>Quantity</th><th>Price</th><th>Value</th><th><span class="sr-only">Actions</span></th></tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="item in inventory.filteredItems() track by item.id">
+                  <td><strong>{{ item.name }}</strong><small>Added {{ item.createdAt | date:'mediumDate' }}</small></td>
+                  <td><span class="category-pill">{{ item.category }}</span></td>
+                  <td><span class="stock" ng-class="{'low': item.quantity <= 5, 'out': item.quantity === 0}">{{ item.quantity }} units</span></td>
+                  <td>{{ item.price | currency }}</td>
+                  <td><strong>{{ item.quantity * item.price | currency }}</strong></td>
+                  <td>
+                    <div class="row-actions">
+                      <button type="button" ng-click="inventory.startEdit(item)" aria-label="Edit {{ item.name }}" title="Edit product">✎</button>
+                      <button class="delete" type="button" ng-click="inventory.deleteItem(item)" aria-label="Delete {{ item.name }}" title="Delete product">×</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

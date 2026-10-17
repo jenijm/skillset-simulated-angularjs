@@ -1,0 +1,17 @@
+{
+  "name": "angularjs-inventory-manager-assessment",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A simulated AngularJS inventory manager assessment.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "angular": "1.8.3"
+  },
+  "devDependencies": {
+    "vite": "8.1.5"
+  }
+}
